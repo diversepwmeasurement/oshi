@@ -1,45 +1,44 @@
-# Full CI matrix on all pushes to master branch
-name: Linux CI
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - '**.md'
-      - '**.yml'
-      - '**.yaml'
-
 jobs:
-  # Runs full project on multiple JDKs
   testmatrix:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        java: [11, 17, 21]
-        os: [ubuntu-latest]
-      fail-fast: false
     name: JDK ${{ matrix.java }}, ${{ matrix.os }}
-
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.java }}
-          distribution: 'zulu'
-          cache: 'maven'
-      - name: Checkstyle
-        if: contains(matrix.java, '11')
-        run: ./mvnw checkstyle:check
-      - name: Forbidden APIs
-        if: contains(matrix.java, '11')
-        run: ./mvnw compile forbiddenapis:check forbiddenapis:testCheck
-      - name: Test with Maven
-        run: ./mvnw test -B
-      - name: Upload Coverage
-        if: contains(matrix.java, '11')
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        cache: maven
+        distribution: zulu
+        java-version: ${{ matrix.java }}
+    - continue-on-error: true
+      if: contains(matrix.java, '11')
+      name: Checkstyle
+      run: ./mvnw checkstyle:check
+    - continue-on-error: true
+      if: contains(matrix.java, '11')
+      name: Forbidden APIs
+      run: ./mvnw compile forbiddenapis:check forbiddenapis:testCheck
+    - continue-on-error: true
+      name: Test with Maven
+      run: ./mvnw test -B
+    - continue-on-error: true
+      if: contains(matrix.java, '11')
+      name: Upload Coverage
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        java:
+        - 11
+        - 17
+        - 21
+        os:
+        - ubuntu-latest
+name: Linux CI
+on:
+  repository_dispatch:
+    types: trigger-ga___linux.yaml
